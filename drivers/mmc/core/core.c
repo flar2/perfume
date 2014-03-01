@@ -68,7 +68,7 @@ static struct workqueue_struct *workqueue;
 struct workqueue_struct *stats_workqueue = NULL;
 static const unsigned freqs[] = { 400000, 300000, 200000, 100000 };
 
-bool use_spi_crc = 1;
+bool use_spi_crc = 0;
 module_param(use_spi_crc, bool, 0);
 
 #define IOTOP_INTERVAL			4500
