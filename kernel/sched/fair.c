@@ -33,8 +33,10 @@
 
 #include "sched.h"
 #include <trace/events/sched.h>
+#include <linux/module.h>
 
-#define MIN_BUDGET	40
+static int min_budget = 80;
+module_param(min_budget, int, 0755);
 
 /*
  * Targeted preemption latency for CPU-bound tasks:
@@ -2534,7 +2536,7 @@ int sched_set_cpu_budget(int cpu, int budget)
 	struct rq *rq = cpu_rq(cpu);
 
 	if (cpu < 6)
-		rq->budget = max(budget, MIN_BUDGET);
+		rq->budget = max(budget, min_budget);
 	else
 		rq->budget = budget;
 
