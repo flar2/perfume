@@ -4034,6 +4034,9 @@ static inline void post_schedule(struct rq *rq)
 }
 
 #endif
+	bool freq_notif_allowed = !(wake_flags & WF_NO_NOTIFIER);
+
+	wake_flags &= ~WF_NO_NOTIFIER;
 
 asmlinkage __visible void schedule_tail(struct task_struct *prev)
 	__releases(rq->lock)
