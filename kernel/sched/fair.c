@@ -35,7 +35,7 @@
 #include <trace/events/sched.h>
 #include <linux/module.h>
 
-static int min_budget = 80;
+static int min_budget = 60;
 module_param(min_budget, int, 0755);
 
 /*
