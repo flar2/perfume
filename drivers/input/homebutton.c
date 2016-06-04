@@ -15,11 +15,14 @@ struct homebutton_data {
 	struct workqueue_struct *hb_input_wq;
 	struct work_struct hb_input_work;
 	struct notifier_block notif;
+	struct kobject *homebutton_kobj;
 	bool key_down;
 	bool scr_suspended;
+	bool enable;
 	int vib_strength;
 } hb_data = {
-	.vib_strength = VIB_STRENGTH
+	.vib_strength = VIB_STRENGTH,
+	.enable = false
 };
 
 static void hb_input_callback(struct work_struct *unused) {
@@ -81,15 +84,11 @@ err_input_register_handle:
 static bool hb_input_filter(struct input_handle *handle, unsigned int type, 
 						unsigned int code, int value)
 {
-	pr_debug("hb: code: %u, val: %i\n", code, value);
-
 	if (type != EV_KEY)
 		return false;
 
-	if (hb_data.scr_suspended) {
-		pr_debug("hb - wakeup %d %d \n",code,value);
+	if (!hb_data.enable || hb_data.scr_suspended)
 		return false;
-	}      
 
 	if (value > 0)
 		hb_data.key_down = true;
@@ -147,6 +146,60 @@ static int fb_notifier_callback(struct notifier_block *this,
 	return NOTIFY_OK;
 }
 
+static ssize_t hb_enable_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", hb_data.enable);
+}
+
+static ssize_t hb_enable_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+	int rc;
+	unsigned long input;
+
+	rc = kstrtoul(buf, 0, &input);
+	if (rc < 0)
+		return -EINVAL;
+
+	if (input < 0 || input > 1)
+		input = 0;
+
+	hb_data.enable = input;
+
+	return count;
+}
+
+static DEVICE_ATTR(enable, (S_IWUSR | S_IRUGO),
+	hb_enable_show, hb_enable_store);
+
+static ssize_t vib_strength_show(struct device *dev,
+		 struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%d\n", hb_data.vib_strength);
+}
+
+static ssize_t vib_strength_store(struct device *dev,
+		 struct device_attribute *attr, const char *buf, size_t count)
+{
+	int ret;
+	unsigned long input;
+
+	ret = kstrtoul(buf, 0, &input);
+	if (ret < 0)
+		return -EINVAL;
+
+	if (input < 0 || input > 90)
+		input = VIB_STRENGTH;
+
+	hb_data.vib_strength = input;
+
+	return count;
+}
+
+static DEVICE_ATTR(vib_strength, (S_IWUSR | S_IRUGO),
+	vib_strength_show, vib_strength_store);
+
 static int __init hb_init(void)
 {
 	int rc = 0;
@@ -184,7 +237,20 @@ static int __init hb_init(void)
 	if (fb_register_client(&hb_data.notif)) {
 		rc = -EINVAL;
 		goto err_alloc_dev;
-	}	
+	}
+
+	hb_data.homebutton_kobj = kobject_create_and_add("homebutton", NULL) ;
+	if (hb_data.homebutton_kobj == NULL) {
+		pr_warn("%s: homebutton_kobj failed\n", __func__);
+	}
+
+	rc = sysfs_create_file(hb_data.homebutton_kobj, &dev_attr_enable.attr);
+	if (rc)
+		pr_err("%s: sysfs_create_file failed for homebutton enable\n", __func__);
+
+	rc = sysfs_create_file(hb_data.homebutton_kobj, &dev_attr_vib_strength.attr);
+	if (rc)
+		pr_err("%s: sysfs_create_file failed for homebutton vib_strength\n", __func__);		
 
 err_input_dev:
 	input_free_device(hb_data.hb_dev);
@@ -197,6 +263,7 @@ err_alloc_dev:
 
 static void __exit hb_exit(void)
 {
+	kobject_del(hb_data.homebutton_kobj);
 	destroy_workqueue(hb_data.hb_input_wq);
 	input_unregister_handler(&hb_input_handler);
 	input_unregister_device(hb_data.hb_dev);
