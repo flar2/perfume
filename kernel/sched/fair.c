@@ -2781,6 +2781,14 @@ static int select_best_cpu(struct task_struct *p, int target, int reason,
 
 	rcu_read_lock();
 
+	if (sync) {
+		unsigned cpuid = smp_processor_id();
+		if (cpumask_test_cpu(cpuid, tsk_cpus_allowed(p))) {
+			target = cpuid;
+			goto out;
+		}
+	}
+
 	grp = task_related_thread_group(p);
 
 	if (grp && grp->preferred_cluster) {
