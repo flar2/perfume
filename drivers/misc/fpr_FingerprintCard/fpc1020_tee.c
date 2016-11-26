@@ -469,6 +469,7 @@ static const struct attribute_group attribute_group = {
 	.attrs = attributes,
 };
 
+extern int get_proximity_status(void);
 static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 {
 	struct fpc1020_data *fpc1020 = handle;
@@ -477,7 +478,7 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 
 	smp_rmb();
 
-	if (fpc1020->wakeup_enabled) {
+	if (fpc1020->wakeup_enabled && get_proximity_status()) {
 		wake_lock_timeout(&fpc1020->ttw_wl,
 					msecs_to_jiffies(FPC_TTW_HOLD_TIME));
 	}

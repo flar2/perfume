@@ -445,6 +445,16 @@ static inline int MCU2CPU_STATUS_GPIO_LEVEL(struct cwmcu_data *mcu_data)
 }
 #endif 
 
+int get_proximity_status(void)
+{
+	u8 data[REPORT_EVENT_PROXIMITY_LEN] = {0};
+
+	CWMCU_i2c_read_power(s_mcu_data, CWSTM32_READ_Proximity,
+				 data, sizeof(data));
+
+	return data[0];
+}
+
 static void gpio_make_falling_edge(int gpio)
 {
 	if (!gpio_get_value(gpio))
