@@ -298,6 +298,10 @@ static int dhdpcie_suspend_dev(struct pci_dev *dev)
 #if 1 && (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0))
 	dhdpcie_info_t *pch = pci_get_drvdata(dev);
 	dhd_bus_t *bus = pch->bus;
+	if (bus->islinkdown) {
+		DHD_ERROR(("%s: PCIe link is down\n", __FUNCTION__));
+		return BCME_ERROR;
+	}
 #endif /* OEM_ANDROID && LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0) */
 	DHD_TRACE_HW4(("%s: Enter\n", __FUNCTION__));
 	pci_save_state(dev);
@@ -328,6 +332,12 @@ static int dhdpcie_resume_dev(struct pci_dev *dev)
 	dhdpcie_info_t *pch = pci_get_drvdata(dev);
 	dhd_bus_t *bus = pch->bus;
 	pci_load_and_free_saved_state(dev, &pch->state);
+
+	if (bus->islinkdown) {
+		DHD_ERROR(("%s: PCIe link was down\n", __FUNCTION__));
+		err = BCME_ERROR;
+		goto out;
+	}
 #endif /* OEM_ANDROID && LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0) */
 	DHD_TRACE_HW4(("%s: Enter\n", __FUNCTION__));
 	pci_restore_state(dev);
@@ -345,6 +355,7 @@ static int dhdpcie_resume_dev(struct pci_dev *dev)
 #if 1 && (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0))
 	bus->pci_d3hot_done = 0;
 #endif /* OEM_ANDROID && LINUX_VERSION_CODE >= KERNEL_VERSION(3, 0, 0) */
+out:
 	return err;
 }
 
@@ -415,6 +426,10 @@ int dhdpcie_pci_suspend_resume(dhd_bus_t *bus, bool state)
 	struct pci_dev *dev = bus->dev;
 
 	if (state) {
+		if (bus->islinkdown) {
+			DHD_ERROR(("%s: PCIe link was down\n", __FUNCTION__));
+			return BCME_ERROR;
+		}
 #ifndef BCMPCIE_OOB_HOST_WAKE
 		dhdpcie_pme_active(bus->osh, state);
 #endif /* !BCMPCIE_OOB_HOST_WAKE */

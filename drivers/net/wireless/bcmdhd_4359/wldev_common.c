@@ -435,7 +435,7 @@ int wldev_set_country(
 	memcpy(cspec.ccode, country_code, WLC_CNTRY_BUF_SZ);
 	dhd_get_customized_country_code(dev, (char *)&cspec.country_abbrev, &cspec);
 
-	if ((strncmp(country_code, cspec.country_abbrev, WLC_CNTRY_BUF_SZ) != 0) ||
+	if ((strncmp(cspec_fw.ccode, cspec.ccode, WLC_CNTRY_BUF_SZ) != 0) ||
 	    (cspec_fw.rev != cspec.rev)) {
 #else
 	if ((error < 0) ||

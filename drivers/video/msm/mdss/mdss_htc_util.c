@@ -292,7 +292,7 @@ int htc_mdss_dsi_parse_dcs_cmds(struct device_node *np,
 
 	prop = of_find_property( np, cmd_key, &len);
 	if (!prop || !len || !(prop->length) || !(prop->value)) {
-		pr_err("%s: failed, key=%s  [%d : %d : %p]\n", __func__, cmd_key,
+		pr_err("%s: failed, key=%s  [%d : %d : %pK]\n", __func__, cmd_key,
 			len, (prop ? prop->length : -1), (prop ? prop->value : 0) );
 		//pr_err("%s: failed, key=%s\n", __func__, cmd_key);
 		return -ENOMEM;

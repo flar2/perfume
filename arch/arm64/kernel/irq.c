@@ -45,9 +45,10 @@ int arch_show_interrupts(struct seq_file *p, int prec)
 }
 
 #ifdef CONFIG_HTC_POWER_DEBUG
-unsigned int *previous_irqs;
+static unsigned int *previous_irqs;
 static int pre_nr_irqs = 0;
 static char irq_output[1024];
+static int debug = 0;
 static void htc_show_interrupt(int i)
 {
         struct irqaction *action;
@@ -75,6 +76,10 @@ static void htc_show_interrupt(int i)
                     name_resize,
                     kstat_irqs_cpu(i, 0)-previous_irqs[i]);
                 safe_strcat(irq_output, irq_piece);
+                if (debug) {
+                    k_pr_embedded("[K] irq: [debug] i=%d kstat_irqs_cpu=%u previous_irqs=%u\n",
+                        i, kstat_irqs_cpu(i, 0), previous_irqs[i]);
+                }
                 previous_irqs[i] = kstat_irqs_cpu(i, 0);
 unlock:
                 raw_spin_unlock_irqrestore(&desc->lock, flags);
@@ -90,10 +95,15 @@ void htc_show_interrupts(void)
 {
         int i = 0;
                if(pre_nr_irqs != nr_irqs) {
+                       if (pre_nr_irqs != 0) {
+                           if (debug) k_pr_embedded("[K] irq: [debug] alloc again\n");
+                       }
                        pre_nr_irqs = nr_irqs;
-                       previous_irqs = (unsigned int *)kcalloc(nr_irqs, sizeof(int),GFP_KERNEL);
+                       kfree(previous_irqs);
+                       previous_irqs = (unsigned int *)kcalloc(nr_irqs + 1, sizeof(int),GFP_KERNEL);
                }
                memset(irq_output, 0, sizeof(irq_output));
+               if (debug) k_pr_embedded("[K] irq: [debug] nr_irqs=%d pre_nr_irqs=%d\n", nr_irqs, pre_nr_irqs);
                for (i = 0; i <= nr_irqs; i++) {
                        htc_show_interrupt(i);
                }

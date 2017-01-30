@@ -1239,13 +1239,18 @@ static void ext4_da_page_release_reservation(struct page *page,
 	unsigned int stop = offset + length;
 	int num_clusters;
 	ext4_fsblk_t lblk;
+	unsigned int next_off;
 
 	BUG_ON(stop > PAGE_CACHE_SIZE || stop < length);
 
 	head = page_buffers(page);
 	bh = head;
 	do {
-		unsigned int next_off = curr_off + bh->b_size;
+		if (!bh) {
+			pr_info("There is not ext4 next buffer head\n");
+			return;
+		}
+		next_off = curr_off + bh->b_size;
 
 		if (next_off > stop)
 			break;

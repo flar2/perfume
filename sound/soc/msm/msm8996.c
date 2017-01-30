@@ -5704,7 +5704,7 @@ static int msm8994_init_ftm_btpcm(struct platform_device *pdev,
 static void htc_card_det(struct work_struct *work)
 {
 	pr_err("%s: Trigger BUG due to sound card not register in %d ms \n", __func__, CARD_TIMEOUT);
-//	BUG();
+	BUG();
 }
 //HTC_AUD_END
 

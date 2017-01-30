@@ -1352,6 +1352,7 @@ static int hallsensor_status_handler_func(struct notifier_block *this,
 		}
 
 		if (!rmi4_data->i2c_to_mcu) {
+			mutex_lock(&(rmi4_data->rmi4_reset_mutex));
 			synaptics_rmi4_set_edge_filter(rmi4_data, rmi4_data->cover_mode);
 			if (rmi4_data->cover_mode) {
 				synaptics_rmi4_set_status(rmi4_data, rmi4_data->cover_mode << 1);
@@ -1366,6 +1367,7 @@ static int hallsensor_status_handler_func(struct notifier_block *this,
 				rmi4_data->glove_enable = 0;
 				pr_info("%s: glove_enable = %d\n", __func__, rmi4_data->glove_enable);
 			}
+			mutex_unlock(&(rmi4_data->rmi4_reset_mutex));
 		}
 
 		pr_info("%s: cover_mode %s by att_%s %s\n", __func__, rmi4_data->cover_mode?"enabled":"disabled", pole? "s" : "n", pole_value ? "Near" : "Far");

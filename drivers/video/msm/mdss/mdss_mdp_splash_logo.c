@@ -261,7 +261,7 @@ int mdss_mdp_splash_cleanup(struct msm_fb_data_type *mfd,
 		(mfd->splash_info.iommu_dynamic_attached && !use_borderfill)) {
 		if (mfd->splash_info.iommu_dynamic_attached &&
 			use_borderfill) {
-			pr_info("Release splash_logo image buffer [%x, %x, %p]\n",
+			pr_info("Release splash_logo image buffer [%x, %x, %pK]\n",
 				mdp5_data->splash_mem_addr, mdp5_data->splash_mem_size, mdp5_data->splash_mem_vaddr);
 			mdss_mdp_splash_unmap_splash_mem(mfd);
 			if (!mdp5_data->splash_mem_vaddr) {
@@ -322,7 +322,7 @@ int mdss_mdp_splash_cleanup(struct msm_fb_data_type *mfd,
 	if (mdp5_data->splash_mem_addr &&
 		!mfd->splash_info.iommu_dynamic_attached) {
 		/* Give back the reserved memory to the system */
-		pr_info("Release cont_splash buffer [%x, %x, %p]\n",
+		pr_info("Release cont_splash buffer [%x, %x, %pK]\n",
 			mdp5_data->splash_mem_addr, mdp5_data->splash_mem_size, mdp5_data->splash_mem_vaddr);
 		if (!mdp5_data->splash_mem_vaddr) {
 			memblock_free(mdp5_data->splash_mem_addr,
@@ -714,7 +714,7 @@ static __ref int mdss_mdp_splash_parse_dt(struct msm_fb_data_type *mfd)
 		dma_set_attr(DMA_ATTR_SKIP_ZEROING, &attrs);
 
 		mdp5_mdata->splash_mem_vaddr = dma_alloc_attrs(&pdev->dev, mdp5_mdata->splash_mem_size, &mdp5_mdata->splash_mem_dma, GFP_KERNEL, &attrs);
-		pr_info("cma: vaddr=%p, dma=%pad\n", mdp5_mdata->splash_mem_vaddr, &mdp5_mdata->splash_mem_dma);
+		pr_info("cma: vaddr=%pK, dma=%pad\n", mdp5_mdata->splash_mem_vaddr, &mdp5_mdata->splash_mem_dma);
 	}
 
 error:

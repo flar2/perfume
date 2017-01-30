@@ -4819,9 +4819,19 @@ wl_cfg80211_connect(struct wiphy *wiphy, struct net_device *dev,
 	err = wldev_iovar_setbuf_bsscfg(dev, "join", ext_join_params, join_params_size,
 		cfg->ioctl_buf, WLC_IOCTL_MAXLEN, bssidx, &cfg->ioctl_buf_sync);
 
+	/* HTC_WIFI_START */
+	// ** [HPKB#6569] Fix Security Leakage in Wifi Module
+	// ** remove original source code
+	/*
 	WL_ERR(("Connecting with" MACDBG " channel (%d) ssid \"%s\", len (%d)\n\n",
 		MAC2STRDBG((u8*)(&ext_join_params->assoc.bssid)), cfg->channel,
 		ext_join_params->ssid.SSID, ext_join_params->ssid.SSID_len));
+	*/
+	// ** add new source code
+	WL_ERR(("Connecting with" MACDBG " channel (%d) , SSID len (%d)\n\n",
+		MAC2STRDBG((u8*)(&ext_join_params->assoc.bssid)), cfg->channel,
+		ext_join_params->ssid.SSID_len));
+	/* HTC_WIFI_END */
 
 	kfree(ext_join_params);
 	if (err) {
