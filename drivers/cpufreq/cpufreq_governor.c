@@ -288,7 +288,10 @@ int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 		dbs_data->cdata = cdata;
 		dbs_data->usage_count = 1;
 
-		rc = cdata->init_ex(dbs_data, policy);
+		if (cdata->governor == GOV_ELEMENTALX)
+			rc = cdata->init_ex(dbs_data, policy);
+		else
+			rc = cdata->init(dbs_data);
 
 		if (rc) {
 			pr_err("%s: POLICY_INIT: init() failed\n", __func__);
