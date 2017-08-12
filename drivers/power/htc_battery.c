@@ -569,6 +569,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 		s_stored_level_flag = true;
 	} else if (htc_batt_info.rep.charging_source > 0)
 		s_stored_level_flag = false;
+
 	/* Let it enter charging state to prevent reporting 100% directly
 	   if soc is 100% if cable is just inserted or boot up with cable in.
 	   In case of Overload follow the remap logic.*/
@@ -587,7 +588,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 		 */
 		if (time_accumulated_level_change < DISCHG_UPDATE_PERIOD_MS
 				&& !s_first) {
-			
+			/* level should keep the previous one */
 			BATT_DEBUG("%s: total_time since last batt level update = %lu ms.",
 			__func__, time_accumulated_level_change);
 			htc_batt_info.rep.level = htc_batt_info.prev.level;
@@ -706,7 +707,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 			/* Allow to minus additional 1% in every 5% */
 			s_five_digit = htc_batt_info.rep.level / 5;
 			if (htc_batt_info.rep.level != 100) {
-				
+				/* In every 5% */
 				if ((s_pre_five_digit <= 18) && (s_pre_five_digit > s_five_digit)) {
 					s_allow_drop_one_percent_flag = true;
 					BATT_LOG("%s: remap: allow to drop additional 1%% at next"
@@ -770,6 +771,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 		 * ELSE
 		 *		- set level = 100
 		 */
+
 		if (htc_batt_info.rep.is_full) {
 			if (htc_batt_info.smooth_chg_full_delay_min
 					&& htc_batt_info.prev.level < 100) {
@@ -782,7 +784,7 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 					htc_batt_info.rep.level = htc_batt_info.prev.level + 1;
 				}
 			} else {
-				htc_batt_info.rep.level = 100; 
+				htc_batt_info.rep.level = 100; /* update to 100% */
 			}
 		} else {
 			if (htc_batt_info.prev.level > htc_batt_info.rep.level) {
@@ -947,7 +949,7 @@ static void calculate_batt_cycle_info(unsigned long time_since_last_update_ms)
 	// removed for misc_partition write permission
 	if (g_total_level_raw % 50 == 0) {
 		BATT_LOG("%s: save batt cycle data every 50%%\n", __func__);
-		
+		/* write batt cycle data to emmc */
 		emmc_misc_write(g_total_level_raw, HTC_BATT_TOTAL_LEVELRAW);
 		emmc_misc_write(g_overheat_55_sec, HTC_BATT_OVERHEAT_MSEC);
 		emmc_misc_write(g_batt_cycle_checksum, HTC_BATT_CYCLE_CHECKSUM);
@@ -1385,7 +1387,7 @@ static void cable_impedance_worker(struct work_struct *work)
 	int vbus_now;
 #endif //CONFIG_HTC_BATT_PCN0020
 
-	
+	//int cnt = 0;
 	if (htc_batt_info.rep.charging_source != POWER_SUPPLY_TYPE_USB_DCP){
 		pr_info("[Cable impedance]Not correct charger source, ignore detection.!\n");
 		return;
@@ -1617,16 +1619,12 @@ static void batt_worker(struct work_struct *work)
 		((cur_jiffies - htc_batt_timer.batt_system_jiffies) * MSEC_PER_SEC / HZ);
 	BATT_DEBUG("%s: total_time since last batt update = %lu ms.\n",
 				__func__, time_since_last_update_ms);
-	htc_batt_timer.total_time_ms = 0; 
+	htc_batt_timer.total_time_ms = 0; /* reset total time */
 	htc_batt_timer.batt_system_jiffies = cur_jiffies;
 
 	/* STEP 2: setup next batt uptate timer (can put in the last step)*/
 	del_timer_sync(&htc_batt_timer.batt_timer);
 	batt_set_check_timer(htc_batt_timer.time_out);
-
-#if 1
-	register_charge_level(htc_batt_info.rep.level);
-#endif
 
 	/* STEP 3: update charging_source */
 	htc_batt_info.prev.charging_source = htc_batt_info.rep.charging_source;
@@ -1737,7 +1735,7 @@ static void batt_worker(struct work_struct *work)
 			user_set_chg_curr = SLOW_CHARGE_CURR;
 #ifdef CONFIG_HTC_BATT_PCN0016
 		} else if (htc_batt_info.rep.is_htcchg_ext_mode) {
-			
+			/* Do not control it*/
 #endif // CONFIG_HTC_BATT_PCN0016
 		} else {
 			if (g_is_pd_charger){
@@ -1997,6 +1995,11 @@ static void batt_worker(struct work_struct *work)
 		pmi8994_set_iusb_max(g_pd_current * 1000);
 	}
 #endif //CONFIG_HTC_BATT_PCN0020
+
+
+#if 1
+	register_charge_level(htc_batt_info.rep.level);
+#endif
 
 	/* FIXME: htc_extension not ready */
 	BATT_EMBEDDED("ID=%d,"
@@ -2476,7 +2479,7 @@ void htc_battery_info_update(enum power_supply_property prop, int intval)
 
 	switch (prop) {
 		case POWER_SUPPLY_PROP_STATUS:
-			
+			/* Get charger type from usb psy interface. */
 			g_latest_chg_src = get_property(htc_batt_info.usb_psy, POWER_SUPPLY_PROP_TYPE);
 			if (htc_batt_info.rep.status != intval ||
 				g_latest_chg_src != htc_batt_info.rep.charging_source) {
@@ -2628,7 +2631,31 @@ bool htc_battery_get_pd_type(int *curr)
 	*curr = g_pd_current;
 	return g_is_pd_charger;
 }
-#endif //CONFIG_HTC_BATT_PCN0020
+#endif
+
+#ifdef CONFIG_HTC_BATT_PCN0023
+bool htc_battery_is_pd_detected(void)
+{
+	return g_is_pd_charger;
+}
+
+int htc_battery_get_pd_current(void)
+{
+	if (g_is_pd_charger)
+		return g_pd_current;
+	else
+		return 0;
+}
+
+int htc_battery_get_pd_vbus(int *vbus)
+{
+	if (g_is_pd_charger) {
+		*vbus = g_pd_voltage;
+		return 0;
+	} else
+		return -EINVAL;
+}
+#endif
 
 bool htc_battery_get_discharging_reason(void)
 {
@@ -3349,7 +3376,7 @@ void htc_battery_probe_process(enum htc_batt_probe probe_type) {
 #endif //CONFIG_HTC_BATT_PCN0014
 
 static struct htc_battery_platform_data htc_battery_pdev_data = {
-	
+	/* charger */
 	.icharger.dump_all = charger_dump_all,
 	.icharger.get_vbus = pmi8994_get_usbin_voltage_now,
 #ifdef CONFIG_HTC_BATT_PCN0009
@@ -3525,7 +3552,7 @@ static int htc_battery_probe(struct platform_device *pdev)
 #endif //CONFIG_HTC_BATT_PCN0022
 #ifdef CONFIG_HTC_BATT_PCN0017
 	INIT_DELAYED_WORK(&htc_batt_info.chk_unknown_chg_work, chk_unknown_chg_worker);
-#endif 
+#endif //CONFIG_HTC_BATT_PCN0017
 	INIT_DELAYED_WORK(&htc_batt_info.htc_usb_overheat_work, htc_usb_overheat_worker);
 	init_timer(&htc_batt_timer.batt_timer);
 	htc_batt_timer.batt_timer.function = batt_regular_timer_handler;
